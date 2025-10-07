@@ -539,10 +539,7 @@ class LostFoundAPITester:
                     "title": "Lost iPhone 13 - ADMIN VERIFIED"
                 }
                 
-                admin_session = requests.Session()
-                admin_session.cookies.update(self.admin_token)
-                
-                response = admin_session.put(f"{API_BASE}/items/{self.test_item_id}", json=admin_update)
+                response = self.admin_token.put(f"{API_BASE}/items/{self.test_item_id}", json=admin_update)
                 
                 if response.status_code == 200:
                     data = response.json()

@@ -233,11 +233,7 @@ class LostFoundAPITester:
                 'file': ('test_image.jpg', BytesIO(test_image_content), 'image/jpeg')
             }
             
-            # Use session with cookies
-            upload_session = requests.Session()
-            upload_session.cookies.update(self.regular_token)
-            
-            response = upload_session.post(f"{API_BASE}/upload", files=files)
+            response = self.regular_token.post(f"{API_BASE}/upload", files=files)
             
             if response.status_code == 200:
                 data = response.json()
@@ -271,10 +267,7 @@ class LostFoundAPITester:
             
         # Test upload without file
         try:
-            upload_session = requests.Session()
-            upload_session.cookies.update(self.regular_token)
-            
-            response = upload_session.post(f"{API_BASE}/upload", files={})
+            response = self.regular_token.post(f"{API_BASE}/upload", files={})
             
             if response.status_code == 400:
                 self.log_test("File Upload (No File)", True, "Correctly rejected empty upload")

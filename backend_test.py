@@ -298,10 +298,7 @@ class LostFoundAPITester:
                 "contactInfo": "john.doe@example.com"
             }
             
-            create_session = requests.Session()
-            create_session.cookies.update(self.regular_token)
-            
-            response = create_session.post(f"{API_BASE}/items", json=item_data)
+            response = self.regular_token.post(f"{API_BASE}/items", json=item_data)
             
             if response.status_code == 201:
                 data = response.json()
@@ -327,7 +324,7 @@ class LostFoundAPITester:
                 "date": "2024-01-16"
             }
             
-            response = create_session.post(f"{API_BASE}/items", json=item_data_no_image)
+            response = self.regular_token.post(f"{API_BASE}/items", json=item_data_no_image)
             
             if response.status_code == 201:
                 data = response.json()
@@ -361,7 +358,7 @@ class LostFoundAPITester:
                 # Missing required fields
             }
             
-            response = create_session.post(f"{API_BASE}/items", json=invalid_item)
+            response = self.regular_token.post(f"{API_BASE}/items", json=invalid_item)
             
             if response.status_code == 400:
                 self.log_test("Create Item (Missing Fields)", True, "Correctly rejected missing required fields")

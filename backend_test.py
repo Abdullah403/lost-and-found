@@ -517,10 +517,7 @@ class LostFoundAPITester:
                 "description": "Updated description"
             }
             
-            owner_session = requests.Session()
-            owner_session.cookies.update(self.regular_token)
-            
-            response = owner_session.put(f"{API_BASE}/items/{self.test_item_id}", json=update_data)
+            response = self.regular_token.put(f"{API_BASE}/items/{self.test_item_id}", json=update_data)
             
             if response.status_code == 200:
                 data = response.json()

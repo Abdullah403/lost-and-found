@@ -571,10 +571,7 @@ class LostFoundAPITester:
         # Test update non-existent item
         try:
             fake_id = str(uuid.uuid4())
-            owner_session = requests.Session()
-            owner_session.cookies.update(self.regular_token)
-            
-            response = owner_session.put(f"{API_BASE}/items/{fake_id}", json={"title": "Update non-existent"})
+            response = self.regular_token.put(f"{API_BASE}/items/{fake_id}", json={"title": "Update non-existent"})
             
             if response.status_code == 404:
                 self.log_test("Update Item (Non-existent)", True, "Correctly returned 404 for non-existent item")

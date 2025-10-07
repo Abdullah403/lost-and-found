@@ -122,74 +122,94 @@ class LostFoundAPITester:
         except Exception as e:
             self.log_test("Registration Validation (Short Password)", False, f"Exception: {str(e)}")
     
+    def get_csrf_token(self, session):
+        """Get CSRF token for NextAuth"""
+        try:
+            response = session.get(f"{API_BASE}/auth/csrf")
+            if response.status_code == 200:
+                return response.json().get('csrfToken', '')
+        except:
+            pass
+        return ''
+    
+    def login_user(self, email, password):
+        """Login user and return authenticated session"""
+        session = requests.Session()
+        
+        # Get CSRF token
+        csrf_token = self.get_csrf_token(session)
+        
+        # Login with CSRF token
+        login_data = {
+            'email': email,
+            'password': password,
+            'csrfToken': csrf_token,
+            'callbackUrl': f'{BASE_URL}/',
+            'json': 'true'
+        }
+        
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+        
+        response = session.post(
+            f"{API_BASE}/auth/callback/credentials", 
+            data=login_data,
+            headers=headers,
+            allow_redirects=False
+        )
+        
+        if response.status_code == 200:
+            # Verify session
+            session_response = session.get(f"{API_BASE}/auth/session")
+            if session_response.status_code == 200:
+                session_data = session_response.json()
+                if session_data and session_data.get('user'):
+                    return session, session_data['user']
+        
+        return None, None
+
     def test_nextauth_login(self):
         """Test 2: NextAuth Login - Test credentials provider"""
         print("=== Testing NextAuth Login ===")
         
         # Test regular user login
         try:
-            login_data = {
-                "email": REGULAR_EMAIL,
-                "password": REGULAR_PASSWORD,
-                "redirect": "false",
-                "json": "true"
-            }
+            session, user_data = self.login_user(REGULAR_EMAIL, REGULAR_PASSWORD)
             
-            response = self.session.post(f"{API_BASE}/auth/callback/credentials", data=login_data)
-            
-            # NextAuth callback returns different responses, check for success indicators
-            if response.status_code in [200, 302]:
-                # Check if we got a session or redirect
-                cookies = response.cookies
-                if any('next-auth' in cookie.name for cookie in cookies):
-                    self.log_test("Regular User Login", True, "Login successful - session cookie received")
-                    # Store session for later tests
-                    self.regular_token = response.cookies
+            if session and user_data:
+                if user_data.get('role') == 'user':
+                    self.log_test("Regular User Login", True, f"Login successful - User: {user_data['name']}, Role: {user_data['role']}")
+                    self.regular_token = session
                 else:
-                    self.log_test("Regular User Login", False, f"No session cookie found. Status: {response.status_code}")
+                    self.log_test("Regular User Login", False, f"Unexpected role: {user_data.get('role')}")
             else:
-                self.log_test("Regular User Login", False, f"Status: {response.status_code}, Response: {response.text}")
+                self.log_test("Regular User Login", False, "Login failed - no session established")
                 
         except Exception as e:
             self.log_test("Regular User Login", False, f"Exception: {str(e)}")
             
         # Test admin user login
         try:
-            login_data = {
-                "email": ADMIN_EMAIL,
-                "password": ADMIN_PASSWORD,
-                "redirect": "false",
-                "json": "true"
-            }
+            session, user_data = self.login_user(ADMIN_EMAIL, ADMIN_PASSWORD)
             
-            response = self.session.post(f"{API_BASE}/auth/callback/credentials", data=login_data)
-            
-            if response.status_code in [200, 302]:
-                cookies = response.cookies
-                if any('next-auth' in cookie.name for cookie in cookies):
-                    self.log_test("Admin User Login", True, "Admin login successful - session cookie received")
-                    self.admin_token = response.cookies
+            if session and user_data:
+                if user_data.get('role') == 'admin':
+                    self.log_test("Admin User Login", True, f"Admin login successful - User: {user_data['name']}, Role: {user_data['role']}")
+                    self.admin_token = session
                 else:
-                    self.log_test("Admin User Login", False, f"No session cookie found. Status: {response.status_code}")
+                    self.log_test("Admin User Login", False, f"Admin role not assigned: {user_data.get('role')}")
             else:
-                self.log_test("Admin User Login", False, f"Status: {response.status_code}, Response: {response.text}")
+                self.log_test("Admin User Login", False, "Admin login failed - no session established")
                 
         except Exception as e:
             self.log_test("Admin User Login", False, f"Exception: {str(e)}")
             
         # Test invalid credentials
         try:
-            invalid_login = {
-                "email": REGULAR_EMAIL,
-                "password": "wrongpassword",
-                "redirect": "false",
-                "json": "true"
-            }
+            session, user_data = self.login_user(REGULAR_EMAIL, "wrongpassword")
             
-            response = self.session.post(f"{API_BASE}/auth/callback/credentials", data=invalid_login)
-            
-            # Should not get session cookies for invalid login
-            if response.status_code >= 400 or not any('next-auth' in cookie.name for cookie in response.cookies):
+            if not session or not user_data:
                 self.log_test("Invalid Credentials Login", True, "Correctly rejected invalid credentials")
             else:
                 self.log_test("Invalid Credentials Login", False, "Invalid credentials were accepted")
